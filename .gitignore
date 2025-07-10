@@ -68,3 +68,6 @@ Desktop.ini
 # Project specific
 .env.local
 .env.production
+
+# Force include project-specific files that might be globally ignored
+!CLAUDE.md
