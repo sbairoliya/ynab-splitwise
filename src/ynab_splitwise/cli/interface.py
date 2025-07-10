@@ -37,11 +37,17 @@ from ..utils.logger import setup_logger
     default="INFO",
     help="Set logging level."
 )
+@click.option(
+    "--skip-filter",
+    is_flag=True,
+    help="Skip transaction filtering and import all found transactions."
+)
 def main(
     start_date: Optional[str],
     dry_run: bool,
     verbose: bool,
-    log_level: str
+    log_level: str,
+    skip_filter: bool
 ) -> None:
     """Sync Splitwise expenses to YNAB.
     
@@ -140,27 +146,42 @@ def main(
         click.echo(f"📝 {len(new_transactions)} new transactions to import")
         
         # Display transaction preview
-        if dry_run or click.confirm("\\nWould you like to preview the transactions?"):
-            display_transaction_preview(new_transactions)
+        display_transaction_preview(new_transactions)
         
         if dry_run:
             click.echo("\\n🔍 Dry run completed - no transactions were imported")
             return
         
+        # Let user filter transactions by date (unless skipped)
+        if skip_filter:
+            filtered_transactions = new_transactions
+            click.echo("⏭️  Skipping transaction filtering (--skip-filter enabled)")
+        else:
+            filtered_transactions = filter_transactions_by_date(new_transactions)
+        
+        if not filtered_transactions:
+            click.echo("❌ No transactions selected for import")
+            return
+        
+        # Show final selection if different from original
+        if len(filtered_transactions) != len(new_transactions):
+            click.echo(f"\\n📋 Selected {len(filtered_transactions)} transactions:")
+            display_transaction_preview(filtered_transactions)
+        
         # Confirm import
-        if not click.confirm(f"\\nImport {len(new_transactions)} transactions to YNAB?"):
+        if not click.confirm(f"\\nImport {len(filtered_transactions)} transactions to YNAB?"):
             click.echo("❌ Import cancelled")
             return
         
         # Validate transactions before import
-        processor.validate_transactions(new_transactions)
+        processor.validate_transactions(filtered_transactions)
         
         # Import transactions to YNAB
         click.echo("📤 Importing transactions to YNAB...")
         
-        if len(new_transactions) == 1:
+        if len(filtered_transactions) == 1:
             # Single transaction
-            txn = new_transactions[0]
+            txn = filtered_transactions[0]
             created_txn = ynab_client.create_transaction(
                 amount=txn["amount"],
                 payee_name=txn["payee_name"],
@@ -171,12 +192,12 @@ def main(
             click.echo(f"✅ Created transaction: {created_txn['payee_name']}")
         else:
             # Batch import
-            created_transactions = ynab_client.create_transactions_batch(new_transactions)
+            created_transactions = ynab_client.create_transactions_batch(filtered_transactions)
             click.echo(f"✅ Successfully imported {len(created_transactions)} transactions")
         
         # Success message
         click.echo("\\n🎉 Sync completed successfully!")
-        click.echo(f"   • {len(new_transactions)} transactions imported")
+        click.echo(f"   • {len(filtered_transactions)} transactions imported")
         click.echo(f"   • {duplicates_count} duplicates skipped")
         click.echo("   • All transactions are in 'Review' status in YNAB")
         
@@ -190,6 +211,91 @@ def main(
         logger.error(f"Unexpected error: {str(e)}")
         click.echo(f"❌ Unexpected error: {str(e)}")
         sys.exit(1)
+
+
+def filter_transactions_by_date(transactions: list) -> list:
+    """Allow user to filter transactions by date range.
+    
+    Args:
+        transactions: List of transaction dictionaries
+        
+    Returns:
+        Filtered list of transactions
+    """
+    if not transactions:
+        return transactions
+    
+    # Sort transactions by date for easier selection
+    sorted_transactions = sorted(transactions, key=lambda x: x['date'])
+    
+    click.echo("\\n🗓️  Transaction Date Filtering")
+    click.echo("=" * 40)
+    
+    # Show date range
+    start_date = sorted_transactions[0]['date'].strftime('%Y-%m-%d')
+    end_date = sorted_transactions[-1]['date'].strftime('%Y-%m-%d')
+    click.echo(f"📅 Transactions from {start_date} to {end_date}")
+    
+    # Filtering options
+    choice = click.prompt(
+        "\\nHow would you like to filter?\\n"
+        "1. Import all transactions\\n"
+        "2. Import transactions before a specific date\\n"
+        "3. Import transactions after a specific date\\n"
+        "4. Import transactions between two dates\\n"
+        "5. Cancel import\\n"
+        "Enter choice (1-5)",
+        type=click.Choice(['1', '2', '3', '4', '5'])
+    )
+    
+    if choice == '1':
+        return transactions
+    elif choice == '5':
+        return []
+    
+    try:
+        if choice == '2':
+            # Before a specific date
+            cutoff_date = click.prompt(
+                "Enter cutoff date (YYYY-MM-DD) - import transactions BEFORE this date",
+                type=str
+            )
+            cutoff = parse_date(cutoff_date).date()
+            filtered = [txn for txn in sorted_transactions if txn['date'].date() < cutoff]
+            
+        elif choice == '3':
+            # After a specific date
+            cutoff_date = click.prompt(
+                "Enter cutoff date (YYYY-MM-DD) - import transactions AFTER this date",
+                type=str
+            )
+            cutoff = parse_date(cutoff_date).date()
+            filtered = [txn for txn in sorted_transactions if txn['date'].date() > cutoff]
+            
+        elif choice == '4':
+            # Between two dates
+            start_filter = click.prompt(
+                "Enter start date (YYYY-MM-DD) - import transactions FROM this date",
+                type=str
+            )
+            end_filter = click.prompt(
+                "Enter end date (YYYY-MM-DD) - import transactions TO this date",
+                type=str
+            )
+            start_cutoff = parse_date(start_filter).date()
+            end_cutoff = parse_date(end_filter).date()
+            filtered = [
+                txn for txn in sorted_transactions 
+                if start_cutoff <= txn['date'].date() <= end_cutoff
+            ]
+        
+        click.echo(f"\\n✅ Filtered to {len(filtered)} transactions")
+        return filtered
+        
+    except Exception as e:
+        click.echo(f"❌ Invalid date format: {e}")
+        click.echo("Using all transactions instead...")
+        return transactions
 
 
 def display_transaction_preview(transactions: list) -> None:
