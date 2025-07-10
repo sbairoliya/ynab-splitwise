@@ -157,7 +157,7 @@ def main(
             filtered_transactions = new_transactions
             click.echo("⏭️  Skipping transaction filtering (--skip-filter enabled)")
         else:
-            filtered_transactions = filter_transactions_by_date(new_transactions)
+            filtered_transactions = filter_transactions_by_position(new_transactions)
         
         if not filtered_transactions:
             click.echo("❌ No transactions selected for import")
@@ -213,8 +213,8 @@ def main(
         sys.exit(1)
 
 
-def filter_transactions_by_date(transactions: list) -> list:
-    """Allow user to filter transactions by date range.
+def filter_transactions_by_position(transactions: list) -> list:
+    """Allow user to filter transactions by position in the list.
     
     Args:
         transactions: List of transaction dictionaries
@@ -228,74 +228,96 @@ def filter_transactions_by_date(transactions: list) -> list:
     # Sort transactions by date for easier selection
     sorted_transactions = sorted(transactions, key=lambda x: x['date'])
     
-    click.echo("\\n🗓️  Transaction Date Filtering")
+    click.echo("\\n🔢 Transaction Position Filtering")
     click.echo("=" * 40)
-    
-    # Show date range
-    start_date = sorted_transactions[0]['date'].strftime('%Y-%m-%d')
-    end_date = sorted_transactions[-1]['date'].strftime('%Y-%m-%d')
-    click.echo(f"📅 Transactions from {start_date} to {end_date}")
+    click.echo("Select which transactions to import from the numbered list above:")
     
     # Filtering options
     choice = click.prompt(
         "\\nHow would you like to filter?\\n"
         "1. Import all transactions\\n"
-        "2. Import transactions before a specific date\\n"
-        "3. Import transactions after a specific date\\n"
-        "4. Import transactions between two dates\\n"
-        "5. Cancel import\\n"
-        "Enter choice (1-5)",
-        type=click.Choice(['1', '2', '3', '4', '5'])
+        "2. Import transactions before position # (e.g., before #5)\\n"
+        "3. Import transactions after position # (e.g., after #3)\\n"
+        "4. Import transactions between positions (e.g., #2 to #8)\\n"
+        "5. Import specific transaction numbers (e.g., 1,3,5)\\n"
+        "6. Cancel import\\n"
+        "Enter choice (1-6)",
+        type=click.Choice(['1', '2', '3', '4', '5', '6'])
     )
     
     if choice == '1':
-        return transactions
-    elif choice == '5':
+        return sorted_transactions
+    elif choice == '6':
         return []
     
     try:
         if choice == '2':
-            # Before a specific date
-            cutoff_date = click.prompt(
-                "Enter cutoff date (YYYY-MM-DD) - import transactions BEFORE this date",
-                type=str
+            # Before a specific position
+            position = click.prompt(
+                f"Enter position (1-{len(sorted_transactions)}) - import transactions BEFORE this number",
+                type=int
             )
-            cutoff = parse_date(cutoff_date).date()
-            filtered = [txn for txn in sorted_transactions if txn['date'].date() < cutoff]
+            if 1 <= position <= len(sorted_transactions):
+                filtered = sorted_transactions[:position-1]
+            else:
+                click.echo(f"❌ Invalid position. Must be between 1 and {len(sorted_transactions)}")
+                return sorted_transactions
             
         elif choice == '3':
-            # After a specific date
-            cutoff_date = click.prompt(
-                "Enter cutoff date (YYYY-MM-DD) - import transactions AFTER this date",
-                type=str
+            # After a specific position
+            position = click.prompt(
+                f"Enter position (1-{len(sorted_transactions)}) - import transactions AFTER this number",
+                type=int
             )
-            cutoff = parse_date(cutoff_date).date()
-            filtered = [txn for txn in sorted_transactions if txn['date'].date() > cutoff]
+            if 1 <= position <= len(sorted_transactions):
+                filtered = sorted_transactions[position:]
+            else:
+                click.echo(f"❌ Invalid position. Must be between 1 and {len(sorted_transactions)}")
+                return sorted_transactions
             
         elif choice == '4':
-            # Between two dates
-            start_filter = click.prompt(
-                "Enter start date (YYYY-MM-DD) - import transactions FROM this date",
+            # Between two positions
+            start_pos = click.prompt(
+                f"Enter start position (1-{len(sorted_transactions)})",
+                type=int
+            )
+            end_pos = click.prompt(
+                f"Enter end position ({start_pos}-{len(sorted_transactions)})",
+                type=int
+            )
+            if 1 <= start_pos <= end_pos <= len(sorted_transactions):
+                filtered = sorted_transactions[start_pos-1:end_pos]
+            else:
+                click.echo(f"❌ Invalid range. Start must be 1-{len(sorted_transactions)}, end must be {start_pos}-{len(sorted_transactions)}")
+                return sorted_transactions
+                
+        elif choice == '5':
+            # Specific positions
+            positions_str = click.prompt(
+                f"Enter transaction numbers separated by commas (e.g., 1,3,5)",
                 type=str
             )
-            end_filter = click.prompt(
-                "Enter end date (YYYY-MM-DD) - import transactions TO this date",
-                type=str
-            )
-            start_cutoff = parse_date(start_filter).date()
-            end_cutoff = parse_date(end_filter).date()
-            filtered = [
-                txn for txn in sorted_transactions 
-                if start_cutoff <= txn['date'].date() <= end_cutoff
-            ]
+            try:
+                positions = [int(p.strip()) for p in positions_str.split(',')]
+                filtered = []
+                for pos in positions:
+                    if 1 <= pos <= len(sorted_transactions):
+                        filtered.append(sorted_transactions[pos-1])
+                    else:
+                        click.echo(f"⚠️  Skipping invalid position: {pos}")
+                # Maintain chronological order
+                filtered = sorted(filtered, key=lambda x: x['date'])
+            except ValueError:
+                click.echo("❌ Invalid format. Please use numbers separated by commas (e.g., 1,3,5)")
+                return sorted_transactions
         
-        click.echo(f"\\n✅ Filtered to {len(filtered)} transactions")
+        click.echo(f"\\n✅ Selected {len(filtered)} transactions")
         return filtered
         
-    except Exception as e:
-        click.echo(f"❌ Invalid date format: {e}")
+    except (ValueError, TypeError) as e:
+        click.echo(f"❌ Invalid input: {e}")
         click.echo("Using all transactions instead...")
-        return transactions
+        return sorted_transactions
 
 
 def display_transaction_preview(transactions: list) -> None:
