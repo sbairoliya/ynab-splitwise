@@ -249,9 +249,9 @@ def filter_transactions_by_position(transactions: list) -> list:
     choice = click.prompt(
         "\nHow would you like to filter?\n"
         "1. Import all transactions\n"
-        "2. Import transactions before position # (e.g., before #5)\n"
-        "3. Import transactions after position # (e.g., after #3)\n"
-        "4. Import transactions between positions (e.g., #2 to #8)\n"
+        "2. Import transactions up to position # (inclusive - e.g., up to #5 imports #1-5)\n"
+        "3. Import transactions starting from position # (inclusive - e.g., from #3 imports #3 onwards)\n"
+        "4. Import transactions within a range (inclusive - e.g., #2 to #8 imports #2-8)\n"
         "5. Import specific transaction numbers (e.g., 1,3,5)\n"
         "6. Cancel import\n"
         "Enter choice (1-6)",
@@ -265,13 +265,13 @@ def filter_transactions_by_position(transactions: list) -> list:
 
     try:
         if choice == "2":
-            # Before a specific position
+            # Up to a specific position (inclusive)
             position = click.prompt(
-                f"Enter position (1-{len(sorted_transactions)}) - import transactions BEFORE this number",
+                f"Enter position (1-{len(sorted_transactions)}) - import transactions up to and INCLUDING this number",
                 type=int,
             )
             if 1 <= position <= len(sorted_transactions):
-                filtered = sorted_transactions[: position - 1]
+                filtered = sorted_transactions[:position]
             else:
                 click.echo(
                     f"❌ Invalid position. Must be between 1 and {len(sorted_transactions)}"
@@ -279,13 +279,13 @@ def filter_transactions_by_position(transactions: list) -> list:
                 return sorted_transactions
 
         elif choice == "3":
-            # After a specific position
+            # Starting from a specific position (inclusive)
             position = click.prompt(
-                f"Enter position (1-{len(sorted_transactions)}) - import transactions AFTER this number",
+                f"Enter position (1-{len(sorted_transactions)}) - import transactions starting FROM and INCLUDING this number",
                 type=int,
             )
             if 1 <= position <= len(sorted_transactions):
-                filtered = sorted_transactions[position:]
+                filtered = sorted_transactions[position - 1:]
             else:
                 click.echo(
                     f"❌ Invalid position. Must be between 1 and {len(sorted_transactions)}"
@@ -293,12 +293,12 @@ def filter_transactions_by_position(transactions: list) -> list:
                 return sorted_transactions
 
         elif choice == "4":
-            # Between two positions
+            # Between two positions (inclusive range)
             start_pos = click.prompt(
-                f"Enter start position (1-{len(sorted_transactions)})", type=int
+                f"Enter start position (1-{len(sorted_transactions)}) - will include this position", type=int
             )
             end_pos = click.prompt(
-                f"Enter end position ({start_pos}-{len(sorted_transactions)})", type=int
+                f"Enter end position ({start_pos}-{len(sorted_transactions)}) - will include this position", type=int
             )
             if 1 <= start_pos <= end_pos <= len(sorted_transactions):
                 filtered = sorted_transactions[start_pos - 1 : end_pos]
