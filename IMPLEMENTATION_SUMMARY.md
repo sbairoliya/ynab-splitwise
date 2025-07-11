@@ -8,7 +8,7 @@ I have successfully implemented a complete YNAB-Splitwise integration system tha
 
 ### Core Functionality
 - **✅ Splitwise API Integration**: Fetches all your expenses with proper authentication
-- **✅ YNAB API Integration**: Creates transactions in your "Splitwise (Wallet)" account  
+- **✅ YNAB API Integration**: Creates transactions in your "Splitwise (Wallet)" account
 - **✅ Smart Amount Calculation**: Imports your owed share (negative) and money you get back (positive)
 - **✅ Detailed Transaction Memos**: Includes paid amounts, owed amounts, users involved, notes, and Splitwise ID
 - **✅ Robust Duplicate Detection**: Uses import IDs to prevent duplicate transactions
@@ -97,7 +97,7 @@ uv run pytest tests/test_processors/test_transaction_processor.py -v
 
 ### Test Coverage
 - **Configuration**: 100% coverage (10 tests)
-- **Transaction Processor**: 89% coverage (20 tests) 
+- **Transaction Processor**: 89% coverage (20 tests)
 - **Duplicate Detector**: 95% coverage (14 tests)
 - **Total**: 44 tests passing, core business logic fully tested
 
@@ -111,7 +111,7 @@ ynab-splitwise/
 │   │   ├── splitwise.py          # ✅ Splitwise API client with pagination
 │   │   └── ynab_client.py        # ✅ YNAB API client with account lookup
 │   ├── processors/
-│   │   ├── duplicate_detector.py # ✅ Multi-strategy duplicate detection  
+│   │   ├── duplicate_detector.py # ✅ Multi-strategy duplicate detection
 │   │   └── transaction_processor.py # ✅ Expense to transaction transformation
 │   ├── cli/interface.py          # ✅ User-friendly command line interface
 │   └── utils/
@@ -131,7 +131,7 @@ ynab-splitwise/
 # Format code
 uv run black src tests
 
-# Sort imports  
+# Sort imports
 uv run isort src tests
 
 # Lint code
@@ -150,7 +150,7 @@ uv run mypy src
 
 ### Your Original Requirements ✅
 - ✅ **Import to "Splitwise (Wallet)" account**: Account lookup by name
-- ✅ **Import owed share and money back**: Smart amount calculation  
+- ✅ **Import owed share and money back**: Smart amount calculation
 - ✅ **Detailed notes**: Comprehensive memo with all relevant information
 - ✅ **Expense description as payee**: Uses Splitwise expense description
 - ✅ **CLI prompts for start date**: Interactive date input with validation
@@ -171,7 +171,7 @@ uv run mypy src
 
 ### Before First Run
 1. **Create YNAB Account**: Ensure you have an account named "Splitwise (Wallet)" in YNAB
-2. **Get API Credentials**: 
+2. **Get API Credentials**:
    - Splitwise: https://secure.splitwise.com/apps
    - YNAB: https://app.ynab.com/settings/developer
 3. **Set Environment Variables**: Copy `.env.example` to `.env` and add your credentials
@@ -193,7 +193,7 @@ uv run mypy src
 Your YNAB-Splitwise integration is complete and ready for production use. The system is:
 
 - **Robust**: Comprehensive error handling and validation
-- **Reliable**: Extensive test coverage and duplicate prevention  
+- **Reliable**: Extensive test coverage and duplicate prevention
 - **User-Friendly**: Clear CLI interface with helpful feedback
 - **Maintainable**: Clean, well-documented code architecture
 - **Secure**: Safe handling of API credentials and data

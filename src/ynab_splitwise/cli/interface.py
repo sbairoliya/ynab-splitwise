@@ -285,7 +285,7 @@ def filter_transactions_by_position(transactions: list) -> list:
                 type=int,
             )
             if 1 <= position <= len(sorted_transactions):
-                filtered = sorted_transactions[position - 1:]
+                filtered = sorted_transactions[position - 1 :]
             else:
                 click.echo(
                     f"❌ Invalid position. Must be between 1 and {len(sorted_transactions)}"
@@ -295,10 +295,12 @@ def filter_transactions_by_position(transactions: list) -> list:
         elif choice == "4":
             # Between two positions (inclusive range)
             start_pos = click.prompt(
-                f"Enter start position (1-{len(sorted_transactions)}) - will include this position", type=int
+                f"Enter start position (1-{len(sorted_transactions)}) - will include this position",
+                type=int,
             )
             end_pos = click.prompt(
-                f"Enter end position ({start_pos}-{len(sorted_transactions)}) - will include this position", type=int
+                f"Enter end position ({start_pos}-{len(sorted_transactions)}) - will include this position",
+                type=int,
             )
             if 1 <= start_pos <= end_pos <= len(sorted_transactions):
                 filtered = sorted_transactions[start_pos - 1 : end_pos]

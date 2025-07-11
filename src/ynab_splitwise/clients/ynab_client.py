@@ -4,11 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import ynab
-from ynab import (
-    ApiException,
-    NewTransaction,
-    PostTransactionsWrapper,
-)
+from ynab import ApiException, NewTransaction, PostTransactionsWrapper
 
 from ..auth.config import Config
 from ..utils.exceptions import AccountNotFoundError, YnabAPIError
@@ -184,7 +180,7 @@ class YnabClient(LoggerMixin):
                     "amount": created_transaction.amount,
                     "payee_name": created_transaction.payee_name,
                     "memo": created_transaction.memo,
-                    "date": created_transaction.date,
+                    "date": created_transaction.var_date,
                     "import_id": created_transaction.import_id,
                 }
             else:
@@ -250,7 +246,7 @@ class YnabClient(LoggerMixin):
                             "amount": txn.amount,
                             "payee_name": txn.payee_name,
                             "memo": txn.memo,
-                            "date": txn.date,
+                            "date": txn.var_date,
                             "import_id": txn.import_id,
                         }
                     )

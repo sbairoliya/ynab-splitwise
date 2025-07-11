@@ -8,7 +8,7 @@ Automatically sync Splitwise expenses to YNAB "Splitwise (Wallet)" account, impo
 ### User Requirements
 - **Target Account**: "Splitwise (Wallet)" in YNAB
 - **Data to Import**: All expenses (your owed share + money you get back)
-- **Transaction Details**: 
+- **Transaction Details**:
   - Payee: Expense description
   - Amount: Your owed share (negative) or money back (positive)
   - Memo: Detailed notes about paid amounts and users involved
@@ -101,7 +101,7 @@ import_id = f"splitwise_{expense_id}"
 # For money you owe (negative amount)
 amount = -abs(your_owed_share)
 
-# For money you get back (positive amount)  
+# For money you get back (positive amount)
 amount = abs(your_received_share)
 
 # Memo format
