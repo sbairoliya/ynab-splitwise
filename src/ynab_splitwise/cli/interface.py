@@ -145,11 +145,12 @@ def main(
         
         click.echo(f"📝 {len(new_transactions)} new transactions to import")
         
-        # Display transaction preview
-        display_transaction_preview(new_transactions)
+        # Display transaction preview (sorted by date, oldest first)
+        sorted_new_transactions = sorted(new_transactions, key=lambda x: x['date'])
+        display_transaction_preview(sorted_new_transactions)
         
         if dry_run:
-            click.echo("\\n🔍 Dry run completed - no transactions were imported")
+            click.echo("\n🔍 Dry run completed - no transactions were imported")
             return
         
         # Let user filter transactions by date (unless skipped)
@@ -165,11 +166,11 @@ def main(
         
         # Show final selection if different from original
         if len(filtered_transactions) != len(new_transactions):
-            click.echo(f"\\n📋 Selected {len(filtered_transactions)} transactions:")
+            click.echo(f"\n📋 Selected {len(filtered_transactions)} transactions:")
             display_transaction_preview(filtered_transactions)
         
         # Confirm import
-        if not click.confirm(f"\\nImport {len(filtered_transactions)} transactions to YNAB?"):
+        if not click.confirm(f"\nImport {len(filtered_transactions)} transactions to YNAB?"):
             click.echo("❌ Import cancelled")
             return
         
@@ -196,10 +197,14 @@ def main(
             click.echo(f"✅ Successfully imported {len(created_transactions)} transactions")
         
         # Success message
-        click.echo("\\n🎉 Sync completed successfully!")
+        click.echo("\n🎉 Sync completed successfully!")
         click.echo(f"   • {len(filtered_transactions)} transactions imported")
         click.echo(f"   • {duplicates_count} duplicates skipped")
         click.echo("   • All transactions are in 'Review' status in YNAB")
+        
+        # Offer immediate undo option
+        if click.confirm("\n↩️  Would you like to undo this import?"):
+            undo_last_import(ynab_client, filtered_transactions)
         
     except YnabSplitwiseError as e:
         logger.error(f"Application error: {e.message}")
@@ -225,22 +230,22 @@ def filter_transactions_by_position(transactions: list) -> list:
     if not transactions:
         return transactions
     
-    # Sort transactions by date for easier selection
+    # Sort transactions by date for easier selection (oldest first)
     sorted_transactions = sorted(transactions, key=lambda x: x['date'])
     
-    click.echo("\\n🔢 Transaction Position Filtering")
+    click.echo("\n🔢 Transaction Position Filtering")
     click.echo("=" * 40)
     click.echo("Select which transactions to import from the numbered list above:")
     
     # Filtering options
     choice = click.prompt(
-        "\\nHow would you like to filter?\\n"
-        "1. Import all transactions\\n"
-        "2. Import transactions before position # (e.g., before #5)\\n"
-        "3. Import transactions after position # (e.g., after #3)\\n"
-        "4. Import transactions between positions (e.g., #2 to #8)\\n"
-        "5. Import specific transaction numbers (e.g., 1,3,5)\\n"
-        "6. Cancel import\\n"
+        "\nHow would you like to filter?\n"
+        "1. Import all transactions\n"
+        "2. Import transactions before position # (e.g., before #5)\n"
+        "3. Import transactions after position # (e.g., after #3)\n"
+        "4. Import transactions between positions (e.g., #2 to #8)\n"
+        "5. Import specific transaction numbers (e.g., 1,3,5)\n"
+        "6. Cancel import\n"
         "Enter choice (1-6)",
         type=click.Choice(['1', '2', '3', '4', '5', '6'])
     )
@@ -311,7 +316,7 @@ def filter_transactions_by_position(transactions: list) -> list:
                 click.echo("❌ Invalid format. Please use numbers separated by commas (e.g., 1,3,5)")
                 return sorted_transactions
         
-        click.echo(f"\\n✅ Selected {len(filtered)} transactions")
+        click.echo(f"\n✅ Selected {len(filtered)} transactions")
         return filtered
         
     except (ValueError, TypeError) as e:
@@ -320,13 +325,60 @@ def filter_transactions_by_position(transactions: list) -> list:
         return sorted_transactions
 
 
+def undo_last_import(ynab_client: YnabClient, imported_transactions: list) -> None:
+    """Undo the last import by deleting the imported transactions.
+    
+    Args:
+        ynab_client: YNAB client instance
+        imported_transactions: List of transactions that were just imported
+    """
+    try:
+        click.echo("\n🔄 Undoing import...")
+        
+        # Get the import IDs from the transactions that were just imported
+        import_ids = [txn.get('import_id') for txn in imported_transactions if txn.get('import_id')]
+        
+        if not import_ids:
+            click.echo("❌ Cannot undo: No import IDs found for tracking")
+            return
+        
+        # Fetch current transactions to find the ones we just imported
+        current_transactions = ynab_client.get_transactions()
+        transactions_to_delete = []
+        
+        for txn in current_transactions:
+            if txn.get('import_id') in import_ids:
+                transactions_to_delete.append(txn)
+        
+        if not transactions_to_delete:
+            click.echo("❌ Cannot find imported transactions to delete")
+            return
+        
+        # Delete each transaction
+        deleted_count = 0
+        for txn in transactions_to_delete:
+            try:
+                ynab_client.delete_transaction(txn['id'])
+                deleted_count += 1
+            except Exception as e:
+                click.echo(f"⚠️  Failed to delete transaction {txn.get('payee_name', 'Unknown')}: {e}")
+        
+        if deleted_count == len(imported_transactions):
+            click.echo(f"✅ Successfully undone! Deleted {deleted_count} transactions")
+        else:
+            click.echo(f"⚠️  Partial undo: Deleted {deleted_count} of {len(imported_transactions)} transactions")
+            
+    except Exception as e:
+        click.echo(f"❌ Undo failed: {str(e)}")
+
+
 def display_transaction_preview(transactions: list) -> None:
     """Display a preview of transactions to be imported.
     
     Args:
         transactions: List of transaction dictionaries
     """
-    click.echo("\\n📋 Transaction Preview:")
+    click.echo("\n📋 Transaction Preview:")
     click.echo("-" * 80)
     
     total_amount = 0
