@@ -246,7 +246,7 @@ ynab-splitwise/
 
 1. Check the logs for detailed error messages
 2. Run with `--verbose` for more debugging information
-3. Review the [implementation plan](IMPLEMENTATION_PLAN.md) for technical details
+3. Check the source code for technical implementation details
 
 ## Security
 
