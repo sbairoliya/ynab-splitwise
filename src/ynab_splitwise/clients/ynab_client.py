@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Optional
 import ynab
 from ynab import (
     ApiException,
+    NewTransaction,
     PostTransactionsWrapper,
-    SaveTransactionWithOptionalFields,
 )
 
 from ..auth.config import Config
@@ -153,7 +153,7 @@ class YnabClient(LoggerMixin):
                 account_id = self.get_account_id(self.config.ynab_account_name)
 
             # Create transaction object
-            transaction = SaveTransactionWithOptionalFields(
+            transaction = NewTransaction(
                 account_id=account_id,
                 amount=amount,
                 payee_name=payee_name,
@@ -215,10 +215,10 @@ class YnabClient(LoggerMixin):
             budget_id = self.get_budget_id()
             account_id = self.get_account_id(self.config.ynab_account_name)
 
-            # Convert to SaveTransaction objects
-            save_transactions = []
+            # Convert to NewTransaction objects
+            new_transactions = []
             for txn in transactions:
-                save_transaction = SaveTransactionWithOptionalFields(
+                new_transaction = NewTransaction(
                     account_id=account_id,
                     amount=txn["amount"],
                     payee_name=txn["payee_name"],
@@ -231,10 +231,10 @@ class YnabClient(LoggerMixin):
                     import_id=txn["import_id"],
                     cleared="uncleared",
                 )
-                save_transactions.append(save_transaction)
+                new_transactions.append(new_transaction)
 
             # Wrap transactions for API call
-            wrapper = PostTransactionsWrapper(transactions=save_transactions)
+            wrapper = PostTransactionsWrapper(transactions=new_transactions)
 
             self.logger.info(f"Creating batch of {len(transactions)} transactions")
 

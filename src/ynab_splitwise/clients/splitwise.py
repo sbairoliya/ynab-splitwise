@@ -104,8 +104,8 @@ class SplitwiseClient(LoggerMixin):
         """Get expenses for the current user.
 
         Args:
-            dated_after: Only include expenses after this date
-            dated_before: Only include expenses before this date
+            dated_after: Only include expenses on or after this date (inclusive)
+            dated_before: Only include expenses on or before this date (inclusive)
             limit: Maximum number of expenses to return (default: 50)
             offset: Number of expenses to skip (default: 0)
 
